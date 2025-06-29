@@ -9,8 +9,11 @@ import (
 
 type TicketRepository interface {
 	Create(ticket *entity.Ticket) error
+	CreateWithTx(tx *gorm.DB, ticket *entity.Ticket) error
 	GetByID(id string) (*entity.Ticket, error)
+	GetByIDWithTx(tx *gorm.DB, id string) (*entity.Ticket, error)
 	Update(ticket *entity.Ticket) error
+	UpdateWithTx(tx *gorm.DB, ticket *entity.Ticket) error
 	Delete(id string) error
 	GetAll(pagination *entity.Pagination, search *entity.Search, filter *entity.TicketFilter) ([]entity.Ticket, int64, error)
 	GetByUserID(userID string, pagination *entity.Pagination) ([]entity.Ticket, int64, error)
@@ -33,6 +36,10 @@ func (r *ticketRepository) Create(ticket *entity.Ticket) error {
 	return r.db.Create(ticket).Error
 }
 
+func (r *ticketRepository) CreateWithTx(tx *gorm.DB, ticket *entity.Ticket) error {
+	return tx.Create(ticket).Error
+}
+
 func (r *ticketRepository) GetByID(id string) (*entity.Ticket, error) {
 	var ticket entity.Ticket
 	err := r.db.Preload("User").Preload("Event").Where("id = ?", id).First(&ticket).Error
@@ -42,8 +49,21 @@ func (r *ticketRepository) GetByID(id string) (*entity.Ticket, error) {
 	return &ticket, nil
 }
 
+func (r *ticketRepository) GetByIDWithTx(tx *gorm.DB, id string) (*entity.Ticket, error) {
+	var ticket entity.Ticket
+	err := tx.Preload("User").Preload("Event").Where("id = ?", id).First(&ticket).Error
+	if err != nil {
+		return nil, err
+	}
+	return &ticket, nil
+}
+
 func (r *ticketRepository) Update(ticket *entity.Ticket) error {
 	return r.db.Save(ticket).Error
+}
+
+func (r *ticketRepository) UpdateWithTx(tx *gorm.DB, ticket *entity.Ticket) error {
+	return tx.Save(ticket).Error
 }
 
 func (r *ticketRepository) Delete(id string) error {

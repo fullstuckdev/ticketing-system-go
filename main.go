@@ -58,7 +58,7 @@ func main() {
 		config.AppConfig.GetJWTDuration(),
 	)
 	eventService := service.NewEventService(eventRepo)
-	ticketService := service.NewTicketService(ticketRepo, eventRepo, userRepo)
+	ticketService := service.NewTicketService(ticketRepo, eventRepo, userRepo, config.DB)
 
 	userController := controller.NewUserController(userService)
 	eventController := controller.NewEventController(eventService)

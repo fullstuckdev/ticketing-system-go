@@ -9,13 +9,17 @@ import (
 
 type EventRepository interface {
 	Create(event *entity.Event) error
+	CreateWithTx(tx *gorm.DB, event *entity.Event) error
 	GetByID(id string) (*entity.Event, error)
+	GetByIDWithTx(tx *gorm.DB, id string) (*entity.Event, error)
 	GetByName(name string) (*entity.Event, error)
 	Update(event *entity.Event) error
+	UpdateWithTx(tx *gorm.DB, event *entity.Event) error
 	Delete(id string) error
 	GetAll(pagination *entity.Pagination, search *entity.Search, filter *entity.EventFilter) ([]entity.Event, int64, error)
 	GetActiveEvents() ([]entity.Event, error)
 	UpdateAvailableTickets(eventID string, quantity int) error
+	UpdateAvailableTicketsWithTx(tx *gorm.DB, eventID string, quantity int) error
 	GetUpcomingEvents(limit int) ([]entity.Event, error)
 }
 
@@ -31,9 +35,22 @@ func (r *eventRepository) Create(event *entity.Event) error {
 	return r.db.Create(event).Error
 }
 
+func (r *eventRepository) CreateWithTx(tx *gorm.DB, event *entity.Event) error {
+	return tx.Create(event).Error
+}
+
 func (r *eventRepository) GetByID(id string) (*entity.Event, error) {
 	var event entity.Event
 	err := r.db.Where("id = ?", id).First(&event).Error
+	if err != nil {
+		return nil, err
+	}
+	return &event, nil
+}
+
+func (r *eventRepository) GetByIDWithTx(tx *gorm.DB, id string) (*entity.Event, error) {
+	var event entity.Event
+	err := tx.Where("id = ?", id).First(&event).Error
 	if err != nil {
 		return nil, err
 	}
@@ -51,6 +68,10 @@ func (r *eventRepository) GetByName(name string) (*entity.Event, error) {
 
 func (r *eventRepository) Update(event *entity.Event) error {
 	return r.db.Save(event).Error
+}
+
+func (r *eventRepository) UpdateWithTx(tx *gorm.DB, event *entity.Event) error {
+	return tx.Save(event).Error
 }
 
 func (r *eventRepository) Delete(id string) error {
@@ -121,6 +142,12 @@ func (r *eventRepository) GetActiveEvents() ([]entity.Event, error) {
 
 func (r *eventRepository) UpdateAvailableTickets(eventID string, quantity int) error {
 	return r.db.Model(&entity.Event{}).
+		Where("id = ?", eventID).
+		UpdateColumn("available", gorm.Expr("available - ?", quantity)).Error
+}
+
+func (r *eventRepository) UpdateAvailableTicketsWithTx(tx *gorm.DB, eventID string, quantity int) error {
+	return tx.Model(&entity.Event{}).
 		Where("id = ?", eventID).
 		UpdateColumn("available", gorm.Expr("available - ?", quantity)).Error
 }
